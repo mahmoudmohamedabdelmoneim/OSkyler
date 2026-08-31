@@ -1,0 +1,17 @@
+{
+  "name": "Skyler",
+  "short_name": "Skyler",
+  "description": "Your uniquely human work.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050612",
+  "theme_color": "#050612",
+  "icons": [
+    {
+      "src": "/OSkyler_appicon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

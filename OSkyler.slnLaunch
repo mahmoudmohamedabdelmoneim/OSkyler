@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "OSkyler (API + Portal)",
+    "Projects": [
+      {
+        "Path": "Skyler.Api\\Skyler.Api.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Skyler.Portal\\Skyler.Portal.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

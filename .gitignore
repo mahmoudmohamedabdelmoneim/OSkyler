@@ -1,0 +1,44 @@
+# Visual Studio and .NET build output
+.vs/
+**/bin/
+**/obj/
+**/*.user
+**/*.suo
+
+# Node and Nuxt generated content
+.pnpm-store/
+**/node_modules/
+**/.nuxt/
+**/.output/
+Skyler.Portal/wwwroot/
+
+# Local build and deployment artifacts
+artifacts/
+build/
+deploy/azure/.keys/
+
+# Local application data
+data/
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.bak
+*.init.lock
+
+# Local secrets and environment files
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.pfx
+*.p12
+
+# Private hackathon account and demo materials
+Hackathon_2026/
+
+# Logs and operating-system files
+*.log
+.DS_Store
+Thumbs.db

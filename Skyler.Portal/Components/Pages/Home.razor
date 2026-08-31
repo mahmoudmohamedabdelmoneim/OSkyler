@@ -1,0 +1,610 @@
+@page "/"
+@inject DashboardApiClient DashboardApi
+
+<PageTitle>Skyler · Uniquely Human Work</PageTitle>
+
+@if (isLoading && summary is null)
+{
+    <div class="dashboard-state" role="status">
+        <span class="state-kicker">Connecting to Outlook</span>
+        <strong>Preparing your uniquely human work view…</strong>
+    </div>
+}
+else if (errorMessage is not null)
+{
+    <div class="dashboard-state dashboard-state-error" role="alert">
+        <span class="state-kicker">Connection interrupted</span>
+        <strong>Skyler could not reach the dashboard API.</strong>
+        <p>@errorMessage</p>
+        <button class="action-button" @onclick="LoadSummaryAsync">Try again</button>
+    </div>
+}
+else if (summary is not null)
+{
+    var signalObservations = GetSignalObservations();
+    var signalObservation = GetSignalObservation(signalObservations);
+    var strongestDimension = GetStrongestDimension(signalObservation);
+    var selectedObservation = GetSelectedObservation();
+    var hasDimensionScores = summary.DimensionScores.Any(dimension => dimension.Percentage.HasValue);
+
+    <div class="skyler-dashboard">
+        <header class="dashboard-header">
+            <div>
+                <h1>Your uniquely human @GetPeriodNoun(summary.Period)</h1>
+                <div class="connection-row">
+                    <span class="live-status"><span class="live-dot" aria-hidden="true"></span>@summary.DataMode</span>
+                    <span class="header-separator" aria-hidden="true"></span>
+                    <span>Last sync: @summary.GeneratedAtUtc.ToLocalTime().ToString("MMM d, yyyy · h:mm tt")</span>
+                    <button class="refresh-link" @onclick="LoadSummaryAsync" disabled="@isLoading">
+                        <span class="refresh-icon" aria-hidden="true"></span>@(isLoading ? "Refreshing…" : "Refresh")
+                    </button>
+                </div>
+            </div>
+
+            <div class="period-control" role="group" aria-label="Dashboard period">
+                <button class="@GetPeriodButtonClass(PeriodDay)" @onclick="() => SelectPeriodAsync(PeriodDay)">Daily</button>
+                <button class="@GetPeriodButtonClass(PeriodWeek)" @onclick="() => SelectPeriodAsync(PeriodWeek)">Weekly</button>
+                <button class="@GetPeriodButtonClass(PeriodMonth)" @onclick="() => SelectPeriodAsync(PeriodMonth)">Monthly</button>
+            </div>
+        </header>
+
+        <section class="surface role-profile" aria-labelledby="role-profile-heading">
+            <div class="role-profile-title">
+                <span class="section-kicker">Inferred role</span>
+                <h2 id="role-profile-heading">@(summary.Role.Title ?? "Undecided")</h2>
+            </div>
+            <p>@summary.Role.Rationale</p>
+            @if (summary.Role.Decision == "decided")
+            {
+                <div class="role-profile-meta">
+                    <span>@FormatConfidence(summary.Role.Confidence) confidence</span>
+                    <span>@summary.Role.EvidenceCount supporting observation@(summary.Role.EvidenceCount == 1 ? null : "s")</span>
+                </div>
+            }
+        </section>
+
+        <div class="dashboard-grid" aria-live="polite">
+            @if (summary.EvidenceCount > 0)
+            {
+            <section class="surface strongest-signal" aria-labelledby="strongest-signal-heading">
+                <div class="signal-card-heading">
+                    <div class="section-kicker">Your strongest observable signal</div>
+                    @if (selectedPeriod != PeriodDay && signalObservations.Count > 1 && signalObservation is not null)
+                    {
+                        <div class="signal-switcher" role="group" aria-label="Choose an observation for the signal ring">
+                            <button @onclick="() => ChangeSignalObservation(-1)" aria-label="Previous observation">←</button>
+                            <span>
+                                <strong>@signalObservation.Subject</strong>
+                                <small>@(GetSignalObservationIndex(signalObservations, signalObservation) + 1) of @signalObservations.Count · @signalObservation.OccurredAtUtc.ToLocalTime().ToString("MMM d")</small>
+                            </span>
+                            <button @onclick="() => ChangeSignalObservation(1)" aria-label="Next observation">→</button>
+                        </div>
+                    }
+                </div>
+                @if (strongestDimension is not null)
+                {
+                    <div class="signal-hero">
+                        <div class="signal-copy">
+                            <h2 id="strongest-signal-heading">@strongestDimension.DisplayName</h2>
+                            <div class="signal-score">@strongestDimension.Percentage%</div>
+                            <div class="signal-label">Observable signal</div>
+                            <div class="signal-observations">@strongestDimension.EvidenceCount</div>
+                            <div class="signal-label">@(strongestDimension.EvidenceCount == 1 ? "Observation" : "Observations")</div>
+                        </div>
+                        <div class="signal-ring" style="--score: @strongestDimension.Percentage" role="img" aria-label="@strongestDimension.DisplayName scored @strongestDimension.Percentage percent">
+                            <span class="signal-ring-core"><span class="people-icon" aria-hidden="true"></span></span>
+                        </div>
+                    </div>
+                    <div class="signal-interpretation">
+                        <span class="interpretation-icon" aria-hidden="true"><span class="heart-person-icon"></span></span>
+                        <p>@GetStrongestDimensionMessage(strongestDimension.Dimension)</p>
+                    </div>
+                }
+                else
+                {
+                    <h2 id="strongest-signal-heading" class="missing-heading">
+                        @(summary.AbsenceObservationCount > 0
+                            ? "Employee absence is recorded for this period"
+                            : summary.EvidenceCount > 0
+                                ? "Not enough observable detail to decide for this period"
+                                : "No work activity was observed for this period")
+                    </h2>
+                }
+            </section>
+
+            <div class="insight-stack">
+                <section class="surface metric-strip" aria-label="Work enrichment overview">
+                    <div class="metric-item">
+                        <span class="metric-icon analysis-icon" aria-hidden="true"></span>
+                        <div>
+                            <span class="metric-label">Decided observations</span>
+                            <strong>@summary.DecidedObservationCount</strong>
+                        </div>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-icon mentorship-icon" aria-hidden="true"></span>
+                        <div>
+                            <span class="metric-label">Mentorship time</span>
+                            <strong>@FormatHours(summary.MentorshipMinutes)</strong>
+                            <small>From Outlook meetings</small>
+                            <small>Baseline: @FormatHours(summary.WorkdayBaselineMinutes)/workday</small>
+                        </div>
+                    </div>
+                </section>
+
+                @if (hasDimensionScores)
+                {
+                    <section class="surface dimension-panel" aria-labelledby="dimension-heading">
+                        <div class="panel-heading">
+                            <h2 id="dimension-heading">Human-work dimensions</h2>
+                        </div>
+                        <div class="dimension-grid">
+                            @foreach (var dimension in OrderSummaryDimensions(summary.DimensionScores).Where(dimension => dimension.Percentage.HasValue))
+                            {
+                                <div class="dimension-item">
+                                    <span class="dimension-name">@dimension.DisplayName</span>
+                                    <strong>@dimension.Percentage%</strong>
+                                    <div class="score-track" role="progressbar" aria-label="@dimension.DisplayName" aria-valuenow="@dimension.Percentage" aria-valuemin="0" aria-valuemax="100">
+                                        <span style="width: @(dimension.Percentage)%"></span>
+                                    </div>
+                                    <small>Confidence @FormatConfidence(dimension.Confidence)</small>
+                                    <small>@dimension.EvidenceCount observation(s)</small>
+                                </div>
+                            }
+                        </div>
+                    </section>
+                }
+
+            </div>
+            }
+
+            <section class="surface ai-work-panel" aria-labelledby="ai-work-heading">
+                <div class="ai-work-heading">
+                    <div>
+                        <span class="section-kicker">AI contribution</span>
+                        <h2 id="ai-work-heading">Work handled by AI</h2>
+                        <p>Employee-approved AI work compared with the overall work volume for @GetPeriodLabel(summary.Period).ToLowerInvariant().</p>
+                    </div>
+                    <span class="ai-policy-badge">Approved work only</span>
+                </div>
+
+                <div class="ai-work-layout">
+                    <div class="ai-volume-summary">
+                        <div class="ai-percentage">@summary.TimeFreedPercentage<span>%</span></div>
+                        <strong>of overall work volume</strong>
+                        <p>@FormatMinutes(summary.TimeFreedMinutes) handled by AI out of @FormatHours(summary.PeriodBaselineMinutes) total.</p>
+                        <div class="ai-volume-track"
+                             role="progressbar"
+                             aria-label="Percentage of overall work volume handled by AI"
+                             aria-valuenow="@summary.TimeFreedPercentage"
+                             aria-valuemin="0"
+                             aria-valuemax="100">
+                            <span style="width: @(Math.Clamp(summary.TimeFreedPercentage, 0, 100))%"></span>
+                        </div>
+                        <div class="ai-volume-legend">
+                            <span><i class="ai-legend-dot" aria-hidden="true"></i>AI @summary.TimeFreedPercentage%</span>
+                            <span><i class="human-legend-dot" aria-hidden="true"></i>Remaining @Math.Max(0, Math.Round(100 - summary.TimeFreedPercentage, 1))%</span>
+                        </div>
+                    </div>
+
+                    <div class="ai-work-list" aria-label="Work handled by AI">
+                        <div class="ai-work-list-heading">
+                            <strong>AI work log</strong>
+                            <span>@summary.AiWorkItems.Count item@(summary.AiWorkItems.Count == 1 ? null : "s")</span>
+                        </div>
+                        @if (summary.AiWorkItems.Count == 0)
+                        {
+                            <div class="ai-work-empty">
+                                <span class="ai-spark-icon" aria-hidden="true">✦</span>
+                                <p>No AI work has been approved for this period.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var item in summary.AiWorkItems)
+                            {
+                                <article class="ai-work-item">
+                                    <span class="ai-spark-icon" aria-hidden="true">✦</span>
+                                    <div>
+                                        <strong>@item.WorkDescription</strong>
+                                        <small>@item.Subject · Approved @item.ApprovedAtUtc.ToLocalTime().ToString("MMM d")</small>
+                                    </div>
+                                    <span class="ai-work-minutes">@FormatMinutes(item.Minutes)</span>
+                                </article>
+                            }
+                        }
+                    </div>
+                </div>
+
+                <div class="ai-work-note">
+                    @summary.PendingAutomationApprovalCount awaiting approval
+                    @if (summary.AbsenceObservationCount > 0)
+                    {
+                        <span>· @summary.AbsenceObservationCount absence record@(summary.AbsenceObservationCount == 1 ? null : "s") excluded</span>
+                    }
+                </div>
+            </section>
+
+            <section class="surface observation-panel @(selectedObservation is null ? "observation-panel-wide" : null)" id="observations" aria-labelledby="observation-title">
+                <div class="panel-heading observation-heading">
+                    <h2 id="observation-title">Recent observations</h2>
+                    <span class="observation-count">@summary.RecentAnalyses.Count</span>
+                </div>
+
+                @if (summary.RecentAnalyses.Count == 0)
+                {
+                    <div class="empty-observations">No observations were available for this period.</div>
+                }
+                else
+                {
+                    <div class="observation-list">
+                        @foreach (var item in summary.RecentAnalyses)
+                        {
+                            var isSelected = selectedObservation?.EvidenceId == item.EvidenceId;
+                            var isExpanded = expandedObservationId == item.EvidenceId;
+                            <article class="observation-item @(isSelected ? "selected" : null)">
+                                <button class="observation-row" @onclick="() => SelectObservation(item.EvidenceId)" aria-expanded="@isExpanded">
+                                    <span class="observation-icon @GetObservationIconClass(item.Kind)" aria-hidden="true"></span>
+                                    <span class="observation-row-copy">
+                                        <strong>@item.Subject</strong>
+                                    </span>
+                                    <span class="observation-row-date">@item.OccurredAtUtc.ToLocalTime().ToString("MMM d, h:mm tt")</span>
+                                    <span class="row-chevron @(isExpanded ? "expanded" : null)" aria-hidden="true">⌄</span>
+                                </button>
+
+                                @if (isExpanded)
+                                {
+                                    <div class="observation-components">
+                                        @if (item.Dimensions.Any(component => component.Percentage.HasValue))
+                                        {
+                                            <div class="observation-signals" aria-label="Human-work signals for @item.Subject">
+                                                @foreach (var component in OrderDimensions(item.Dimensions).Where(component => component.Percentage.HasValue))
+                                                {
+                                                    <div class="observation-signal">
+                                                        <div>
+                                                            <strong>@component.DisplayName</strong>
+                                                            <span>@component.Percentage% · @FormatConfidence(component.Confidence) confidence</span>
+                                                        </div>
+                                                        <p>@component.Rationale</p>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <p class="undecided-analysis">Not enough observable detail to decide.</p>
+                                        }
+                                    </div>
+                                }
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+
+            @if (selectedObservation is not null)
+            {
+                <section class="surface observation-focus" aria-labelledby="observation-focus-heading">
+                    <div class="detail-heading">
+                        <h2 id="observation-focus-heading">@selectedObservation.Subject</h2>
+                    </div>
+
+                    @if (selectedObservation.IsSynthetic || selectedObservation.IsAbsent)
+                    {
+                        <div class="detail-badges">
+                            @if (selectedObservation.IsSynthetic)
+                            {
+                                <span class="synthetic-badge">Synthetic</span>
+                            }
+                            @if (selectedObservation.IsAbsent)
+                            {
+                                <span class="absence-badge">Employee absent</span>
+                            }
+                        </div>
+                    }
+
+                    <p class="detail-summary">@selectedObservation.Summary</p>
+                    <section class="automation-opportunity" aria-labelledby="automation-opportunity-heading">
+                        <div>
+                            <span class="section-kicker">Automation opportunity</span>
+                            <h3 id="automation-opportunity-heading">
+                                @(selectedObservation.IsAbsent
+                                    ? "Calculation paused for recorded absence"
+                                    : selectedObservation.AutomationOpportunity ?? "No safe task delegation identified")
+                            </h3>
+                        </div>
+
+                        @if (selectedObservation.IsAbsent)
+                        {
+                            <p class="no-automation-copy">Outlook marks the employee absent, so the prototype intentionally makes no work or automation calculation for this entry.</p>
+                        }
+                        else if (selectedObservation.AutomationOpportunity is not null &&
+                            selectedObservation.EstimatedTimeFreedMinutes is > 0)
+                        {
+                            <div class="automation-action-row">
+                                <div class="approval-status">
+                                    @if (selectedObservation.AutomationApproved)
+                                    {
+                                        <strong>Approved for the model</strong>
+                                        <small>@selectedObservation.TimeFreedMinutes min now counts as freed time.</small>
+                                    }
+                                    else
+                                    {
+                                        <strong>Estimated saving: @selectedObservation.EstimatedTimeFreedMinutes min</strong>
+                                        <small>This estimate counts as 0 min until you approve the model to do the task.</small>
+                                    }
+                                </div>
+                                <button class="approval-button @(selectedObservation.AutomationApproved ? "approved" : null)"
+                                        @onclick="() => SetAutomationApprovalAsync(selectedObservation)"
+                                        disabled="@isUpdatingApproval">
+                                    @(isUpdatingApproval
+                                        ? "Saving…"
+                                        : selectedObservation.AutomationApproved
+                                            ? "Remove approval"
+                                            : "Approve model to do this")
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="no-automation-copy">Estimated saving: 0 min. This work stays employee-led and contributes no automation-based freed time.</p>
+                        }
+
+                        @if (approvalError is not null)
+                        {
+                            <p class="approval-error" role="alert">@approvalError</p>
+                        }
+                    </section>
+
+                    @if (selectedObservation.Warning is not null)
+                    {
+                        <div class="detail-warning">@selectedObservation.Warning</div>
+                    }
+                </section>
+            }
+        </div>
+
+    </div>
+}
+
+@code {
+    private const string PeriodDay = "day";
+    private const string PeriodWeek = "week";
+    private const string PeriodMonth = "month";
+
+    private DashboardSummaryDto? summary;
+    private string selectedPeriod = PeriodWeek;
+    private Guid? selectedObservationId;
+    private Guid? expandedObservationId;
+    private Guid? selectedSignalObservationId;
+    private string? errorMessage;
+    private string? approvalError;
+    private bool isLoading;
+    private bool isUpdatingApproval;
+
+    protected override Task OnInitializedAsync() => LoadSummaryAsync();
+
+    private async Task SelectPeriodAsync(string period)
+    {
+        selectedPeriod = period;
+        selectedSignalObservationId = null;
+        expandedObservationId = null;
+        await LoadSummaryAsync();
+    }
+
+    private async Task LoadSummaryAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            summary = await DashboardApi.GetSummaryAsync(selectedPeriod);
+            if (selectedObservationId is null || summary.RecentAnalyses.All(item => item.EvidenceId != selectedObservationId))
+            {
+                selectedObservationId = GetDefaultObservationId();
+            }
+
+            var signalObservations = GetSignalObservations();
+            if (selectedSignalObservationId is null || signalObservations.All(item => item.EvidenceId != selectedSignalObservationId))
+            {
+                selectedSignalObservationId = signalObservations.FirstOrDefault()?.EvidenceId;
+            }
+        }
+        catch (HttpRequestException exception)
+        {
+            errorMessage = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            errorMessage = exception.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private SignalDimension? GetStrongestDimension(EvidenceAnalysisDto? signalObservation)
+    {
+        if (selectedPeriod != PeriodDay && signalObservation is not null)
+        {
+            var dimension = signalObservation.Dimensions
+                .Where(item => item.Percentage.HasValue)
+                .OrderByDescending(item => item.Percentage)
+                .FirstOrDefault();
+
+            return dimension is null
+                ? null
+                : new SignalDimension(
+                    dimension.Dimension,
+                    dimension.DisplayName,
+                    dimension.Percentage!.Value,
+                    1);
+        }
+
+        var summaryDimension = summary?.DimensionScores
+            .Where(dimension => dimension.Percentage.HasValue)
+            .OrderByDescending(dimension => dimension.Percentage)
+            .FirstOrDefault();
+
+        return summaryDimension is null
+            ? null
+            : new SignalDimension(
+                summaryDimension.Dimension,
+                summaryDimension.DisplayName,
+                summaryDimension.Percentage!.Value,
+                summaryDimension.EvidenceCount);
+    }
+
+    private EvidenceAnalysisDto? GetSelectedObservation() =>
+        summary?.RecentAnalyses.FirstOrDefault(item => item.EvidenceId == selectedObservationId)
+        ?? summary?.RecentAnalyses.FirstOrDefault();
+
+    private Guid? GetDefaultObservationId() =>
+        summary?.RecentAnalyses
+            .OrderByDescending(item => item.Dimensions.Count(component => component.Percentage.HasValue))
+            .ThenByDescending(item => item.OccurredAtUtc)
+            .FirstOrDefault()
+            ?.EvidenceId;
+
+    private IReadOnlyList<EvidenceAnalysisDto> GetSignalObservations() =>
+        summary?.RecentAnalyses
+            .Where(item => !item.IsAbsent && item.Dimensions.Any(dimension => dimension.Percentage.HasValue))
+            .OrderByDescending(item => item.OccurredAtUtc)
+            .ToList()
+        ?? [];
+
+    private EvidenceAnalysisDto? GetSignalObservation(IReadOnlyList<EvidenceAnalysisDto> signalObservations) =>
+        signalObservations.FirstOrDefault(item => item.EvidenceId == selectedSignalObservationId)
+        ?? signalObservations.FirstOrDefault();
+
+    private static int GetSignalObservationIndex(
+        IReadOnlyList<EvidenceAnalysisDto> signalObservations,
+        EvidenceAnalysisDto observation)
+    {
+        for (var index = 0; index < signalObservations.Count; index++)
+        {
+            if (signalObservations[index].EvidenceId == observation.EvidenceId)
+            {
+                return index;
+            }
+        }
+
+        return 0;
+    }
+
+    private void ChangeSignalObservation(int offset)
+    {
+        var signalObservations = GetSignalObservations();
+        if (signalObservations.Count == 0)
+        {
+            return;
+        }
+
+        var currentIndex = signalObservations
+            .Select((item, index) => new { item.EvidenceId, Index = index })
+            .FirstOrDefault(item => item.EvidenceId == selectedSignalObservationId)
+            ?.Index ?? 0;
+        var nextIndex = (currentIndex + offset + signalObservations.Count) % signalObservations.Count;
+        selectedSignalObservationId = signalObservations[nextIndex].EvidenceId;
+        selectedObservationId = selectedSignalObservationId;
+    }
+
+    private void SelectObservation(Guid observationId)
+    {
+        selectedObservationId = observationId;
+        expandedObservationId = expandedObservationId == observationId ? null : observationId;
+
+        if (GetSignalObservations().Any(item => item.EvidenceId == observationId))
+        {
+            selectedSignalObservationId = observationId;
+        }
+    }
+
+    private async Task SetAutomationApprovalAsync(EvidenceAnalysisDto observation)
+    {
+        isUpdatingApproval = true;
+        approvalError = null;
+
+        try
+        {
+            await DashboardApi.SetAutomationApprovalAsync(
+                observation.EvidenceId,
+                !observation.AutomationApproved);
+            await LoadSummaryAsync();
+        }
+        catch (HttpRequestException exception)
+        {
+            approvalError = exception.Message;
+        }
+        finally
+        {
+            isUpdatingApproval = false;
+        }
+    }
+
+    private string GetPeriodButtonClass(string period) =>
+        selectedPeriod == period ? "period-button active" : "period-button";
+
+    private static string GetPeriodNoun(string period) =>
+        period switch
+        {
+            PeriodDay => "day",
+            PeriodMonth => "month",
+            _ => "week"
+        };
+
+    private static string GetPeriodLabel(string period) =>
+        period switch
+        {
+            PeriodDay => "Today",
+            PeriodMonth => "This month",
+            _ => "Last 7 days"
+        };
+
+    private static string GetObservationIconClass(string kind) =>
+        kind == "CalendarMeeting" ? "calendar-icon" : "email-icon";
+
+    private static IEnumerable<DimensionSummaryDto> OrderSummaryDimensions(IEnumerable<DimensionSummaryDto> dimensions) =>
+        dimensions.OrderBy(component => GetDimensionOrder(component.Dimension));
+
+    private static IEnumerable<DimensionScoreDto> OrderDimensions(IEnumerable<DimensionScoreDto> dimensions) =>
+        dimensions.OrderBy(component => GetDimensionOrder(component.Dimension));
+
+    private static int GetDimensionOrder(string dimension) =>
+        dimension switch
+        {
+            "StrategicReasoning" => 1,
+            "EmpathyAndCommunication" => 2,
+            "LeadershipAndMentorship" => 3,
+            "HelpAndIssueResolution" => 4,
+            "CreativeProblemSolving" => 5,
+            _ => 99
+        };
+
+    private static string GetStrongestDimensionMessage(string dimension) =>
+        dimension switch
+        {
+            "HelpAndIssueResolution" => "You show up to solve real problems and support others when it matters most.",
+            "LeadershipAndMentorship" => "You create momentum by helping other people grow and move forward.",
+            "EmpathyAndCommunication" => "You make work clearer and more human through thoughtful communication.",
+            "StrategicReasoning" => "You connect today's actions to the outcomes that matter over time.",
+            _ => "You bring human judgment to complex work where it has the most value."
+        };
+
+    private static string FormatConfidence(double? confidence) =>
+        confidence.HasValue ? $"{Math.Round(confidence.Value * 100)}%" : "—";
+
+    private static string FormatHours(int minutes) =>
+        minutes == 0 ? "0 hr" : $"{minutes / 60d:0.#} hr";
+
+    private static string FormatMinutes(int minutes) =>
+        minutes >= 60 ? FormatHours(minutes) : $"{minutes} min";
+
+    private sealed record SignalDimension(
+        string Dimension,
+        string DisplayName,
+        double Percentage,
+        int EvidenceCount);
+}

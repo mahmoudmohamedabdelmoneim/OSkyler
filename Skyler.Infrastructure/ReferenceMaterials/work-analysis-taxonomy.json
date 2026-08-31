@@ -1,0 +1,103 @@
+{
+  "catalogVersion": "1.0",
+  "purpose": "Neutral vocabulary only. This catalog is not evidence, training data, examples, scores, or an occupational prior.",
+  "evidencePolicy": [
+    "Use only the supplied Outlook item from the authorized mailbox as evidence.",
+    "Never transfer assumptions or scores from these definitions to an employee.",
+    "Never infer activity from occupation, identity, writing style, volume, participants, or duration alone."
+  ],
+  "decisionPolicy": {
+    "undecidedWhen": "The item lacks a concrete action, decision, outcome, problem, assistance, communication purpose, mentoring behavior, or created alternative.",
+    "insufficientByThemselves": [
+      "generic title",
+      "empty preview",
+      "scheduling boilerplate",
+      "participants",
+      "duration"
+    ],
+    "decidedScoring": {
+      "0": "Enough detail to decide, with no observable signal for the dimension.",
+      "1-24": "Indirect or minor evidence.",
+      "25-49": "Clear but supporting evidence.",
+      "50-74": "Explicit, meaningful evidence central to part of the item.",
+      "75-89": "Strong, central evidence with a concrete outcome or decision.",
+      "90-100": "Unusually explicit, sustained, outcome-linked evidence."
+    }
+  },
+  "rolePolicy": {
+    "purpose": "Standard functional-role naming only; titles are not evidence or priors.",
+    "decidedWhen": "The Outlook item contains an explicit role title attributable to the mailbox owner or multiple concrete responsibilities that distinguish a functional role.",
+    "undecidedWhen": "The available evidence is generic, shared by many roles, or depends on identity, participants, writing style, seniority, activity volume, or assumptions."
+  },
+  "sources": [
+    {
+      "name": "O*NET 31.0 Content Model Reference",
+      "publisher": "U.S. Department of Labor, Employment and Training Administration",
+      "jsonUrl": "https://www.onetcenter.org/dl_files/database/db_31_0_json/content_model_reference.json",
+      "dataDictionary": "https://www.onetcenter.org/dictionary/31.0/json/content_model_reference.html",
+      "license": "CC BY 4.0",
+      "usage": "Selected definitions only; occupation ratings and task examples are excluded."
+    },
+    {
+      "name": "O*NET 31.0 Job Titles",
+      "publisher": "U.S. Department of Labor, Employment and Training Administration",
+      "jsonUrl": "https://www.onetcenter.org/dl_files/database/db_31_0_json/job_titles.json",
+      "dataDictionary": "https://www.onetcenter.org/dictionary/31.0/json/job_titles.html",
+      "license": "CC BY 4.0",
+      "usage": "Standard title vocabulary only; job-title prevalence, occupations, and examples are excluded from evidence."
+    },
+    {
+      "name": "Microsoft Graph message resource JSON schema",
+      "url": "https://learn.microsoft.com/en-us/graph/api/resources/message?view=graph-rest-1.0",
+      "usage": "Field provenance only; not decision evidence."
+    },
+    {
+      "name": "Microsoft Graph event resource JSON schema",
+      "url": "https://learn.microsoft.com/en-us/graph/api/resources/event?view=graph-rest-1.0",
+      "usage": "Field provenance only; not decision evidence."
+    }
+  ],
+  "dimensions": [
+    {
+      "dimension": "StrategicReasoning",
+      "elements": [
+        ["4.A.2.b.4", "Developing Objectives and Strategies", "Establishing long-range objectives and specifying the strategies and actions to achieve them."],
+        ["4.A.2.b.1", "Making Decisions and Solving Problems", "Analyzing information and evaluating results to choose the best solution and solve problems."],
+        ["2.B.4.e", "Judgment and Decision Making", "Considering the relative costs and benefits of potential actions to choose the most appropriate one."]
+      ]
+    },
+    {
+      "dimension": "EmpathyAndCommunication",
+      "elements": [
+        ["2.A.1.b", "Active Listening", "Giving full attention to what other people are saying, taking time to understand their points, and asking questions as appropriate."],
+        ["2.B.1.a", "Social Perceptiveness", "Being aware of others' reactions and understanding why they react as they do."],
+        ["4.A.4.a.1", "Interpreting the Meaning of Information for Others", "Translating or explaining what information means and how it can be used."],
+        ["4.A.4.a.7", "Resolving Conflicts and Negotiating with Others", "Handling complaints, settling disputes, resolving grievances and conflicts, or negotiating with others."]
+      ]
+    },
+    {
+      "dimension": "LeadershipAndMentorship",
+      "elements": [
+        ["4.A.4.b.5", "Coaching and Developing Others", "Identifying developmental needs and coaching, mentoring, or helping others improve their knowledge or skills."],
+        ["4.A.4.b.4", "Guiding, Directing, and Motivating Subordinates", "Providing guidance and direction, including setting standards and monitoring performance."],
+        ["2.B.1.e", "Instructing", "Teaching others how to do something."]
+      ]
+    },
+    {
+      "dimension": "CreativeProblemSolving",
+      "elements": [
+        ["4.A.2.b.2", "Thinking Creatively", "Developing, designing, or creating new applications, ideas, relationships, systems, or products."],
+        ["1.A.1.b.2", "Originality", "Developing unusual or clever ideas or creative ways to solve a problem."],
+        ["2.B.2.i", "Complex Problem Solving", "Identifying complex problems and reviewing related information to develop, evaluate, and implement solutions."]
+      ]
+    },
+    {
+      "dimension": "HelpAndIssueResolution",
+      "elements": [
+        ["2.B.3.k", "Troubleshooting", "Determining causes of operating errors and deciding what to do about them."],
+        ["2.B.1.f", "Service Orientation", "Actively looking for ways to help people."],
+        ["4.A.4.a.5", "Assisting and Caring for Others", "Providing assistance, emotional support, or other care to coworkers, customers, or patients."]
+      ]
+    }
+  ]
+}

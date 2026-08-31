@@ -1,0 +1,46 @@
+using Skyler.Core;
+using Skyler.Infrastructure;
+
+var builder = Host.CreateApplicationBuilder(args);
+builder.Logging.ClearProviders();
+builder.Logging.AddSimpleConsole(options => options.TimestampFormat = "HH:mm:ss ");
+builder.Services.AddSkylerDatabase(
+    builder.Configuration.GetConnectionString("SkylerDatabase")
+        ?? throw new InvalidOperationException("Connection string 'SkylerDatabase' was not found."),
+    builder.Environment.ContentRootPath);
+
+var localLlmOptions = new LocalLlmOptions(
+    builder.Configuration["LocalLlm:BaseUrl"] ?? "http://localhost:11434/",
+    builder.Configuration["LocalLlm:Model"] ?? "mistral",
+    builder.Configuration.GetValue("LocalLlm:HealthTimeoutSeconds", 2),
+    builder.Configuration.GetValue("LocalLlm:InferenceTimeoutSeconds", 90));
+var outlookOptions = new OutlookOptions(
+    builder.Configuration["Outlook:Mode"] ?? "Live",
+    builder.Configuration["Outlook:ClientId"] ?? string.Empty,
+    builder.Configuration["Outlook:Mailbox"] ?? string.Empty,
+    builder.Configuration["Outlook:Authority"] ?? "https://login.microsoftonline.com/consumers",
+    builder.Configuration.GetValue("Outlook:SyncDays", 30),
+    builder.Configuration.GetValue("Outlook:MaxItems", 50),
+    builder.Configuration.GetSection("Outlook:MentorshipIndicators").Get<string[]>()
+        ?? ["mentor", "coaching", "career", "development", "one-on-one", "1:1"],
+    builder.Configuration.GetSection("Outlook:MentorshipMeetingLinkIndicators").Get<string[]>()
+        ?? []);
+
+builder.Services.AddSingleton(localLlmOptions);
+builder.Services.AddSingleton(outlookOptions);
+builder.Services.AddSingleton(_ => new HttpClient
+{
+    BaseAddress = new Uri(localLlmOptions.BaseUrl),
+    Timeout = Timeout.InfiniteTimeSpan
+});
+builder.Services.AddSingleton<OllamaWorkEvidenceAnalyzer>();
+builder.Services.AddSingleton<ScenarioEvidenceAnalyzer>();
+builder.Services.AddSingleton<IWorkEvidenceAnalyzer, ResilientWorkEvidenceAnalyzer>();
+builder.Services.AddSingleton<OutlookTokenProvider>();
+builder.Services.AddSingleton<MicrosoftGraphOutlookEvidenceSource>();
+builder.Services.AddSingleton<IWorkEvidenceSource, ConfiguredOutlookEvidenceSource>();
+builder.Services.AddSingleton<OutlookAnalysisWorker>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<OutlookAnalysisWorker>());
+
+var host = builder.Build();
+host.Run();

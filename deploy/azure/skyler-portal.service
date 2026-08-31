@@ -1,0 +1,27 @@
+[Unit]
+Description=Skyler judging portal
+After=network-online.target skyler-api.service
+Wants=network-online.target
+Requires=skyler-api.service
+
+[Service]
+Type=simple
+User=skyler
+Group=skyler
+WorkingDirectory=/opt/skyler/current/portal
+ExecStart=/opt/skyler/current/portal/Skyler.Portal
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGINT
+Environment=HOME=/home/skyler
+Environment=ASPNETCORE_ENVIRONMENT=Development
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5133
+Environment=ApiBaseUrl=http://127.0.0.1:5128/
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+
+[Install]
+WantedBy=multi-user.target

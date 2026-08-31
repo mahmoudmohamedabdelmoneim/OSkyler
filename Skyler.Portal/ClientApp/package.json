@@ -1,0 +1,17 @@
+{
+  "name": "skyler-portal",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev --port 5133",
+    "generate": "nuxt generate",
+    "build": "nuxt build",
+    "preview": "nuxt preview"
+  },
+  "dependencies": {
+    "@lucide/vue": "^1.0.0",
+    "nuxt": "^4.5.2",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
+  }
+}

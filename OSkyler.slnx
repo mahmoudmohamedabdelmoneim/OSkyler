@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/Skyler.src/">
+    <Project Path="Skyler.Api/Skyler.Api.csproj" />
+    <Project Path="Skyler.Contracts/Skyler.Contracts.csproj" />
+    <Project Path="Skyler.Core/Skyler.Core.csproj" />
+    <Project Path="Skyler.Infrastructure/Skyler.Infrastructure.csproj" />
+    <Project Path="Skyler.Portal/Skyler.Portal.csproj" />
+    <Project Path="Skyler.Worker/Skyler.Worker.csproj" />
+  </Folder>
+  <Folder Name="/Skyler.Tests/" />
+</Solution>

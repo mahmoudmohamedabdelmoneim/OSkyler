@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-Skyler.Worker-5845514d-0879-4774-98b9-4d287af34e99</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Skyler.Contracts\Skyler.Contracts.csproj" />
+    <ProjectReference Include="..\Skyler.Core\Skyler.Core.csproj" />
+    <ProjectReference Include="..\Skyler.Infrastructure\Skyler.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
