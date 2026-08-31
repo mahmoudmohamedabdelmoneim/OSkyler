@@ -1,6 +1,6 @@
 # OSkyler
 
-OSkyler turns work activity into an in-house work-intelligence dashboard. It reads work items, analyzes them, stores the results in SQLite, and presents uniquely human-work signals and proposed automation opportunities for role/team review. Results are visible on spot.
+OSkyler turns work activity into uniquely human work analysis dashboard. It reads work items and presents uniquely human-work signals and proposed automation opportunities for role/team review. Results are visible on spot.
 
 The normal runtime has two application processes:
 
